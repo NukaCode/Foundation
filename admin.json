@@ -1,0 +1,23 @@
+{
+    "navigation": {
+        "Style": {
+            "name": "Style",
+            "icon": "fa fa-twitter",
+            "route": "admin.style.index",
+            "children": ["admin.style.*"]
+        }
+    },
+    "notifications": [
+        {
+            "color": "info",
+            "title": "Theme",
+            "focus": {
+                "method": "Config::get",
+                "argument": "nukacode-frontend.theme"
+            },
+            "icon": "fa-css3",
+            "size": 3,
+            "bar": "bar-inverse"
+        }
+    ]
+}

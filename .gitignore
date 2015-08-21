@@ -1,0 +1,7 @@
+/vendor
+/components
+.DS_Store
+/.idea
+._*
+coverage.xml
+docs/build

@@ -1,0 +1,10 @@
+default:
+    autoload: %paths.base%/tests/features/bootstrap
+    suites:
+        default:
+            paths: [ %paths.base%/tests/features ]
+    extensions:
+        Behat\MinkExtension:
+#            base_url: http://localhost:7562
+            goutte: ~
+            selenium2: ~
