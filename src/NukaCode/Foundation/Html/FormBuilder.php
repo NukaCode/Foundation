@@ -5,47 +5,23 @@ use NukaCode\Html\FormBuilder as BaseFormBuilder;
 class FormBuilder extends BaseFormBuilder
 {
 
-    public    $labelSize       = 2;
+    public $labelSize = 2;
 
-    public    $inputSize       = 10;
+    public $inputSize = 10;
 
-    public    $iconSize        = 0;
+    public $iconSize = 0;
 
-    public    $type            = 'horizontal';
-
-    public    $allowedTypes    = [
-        'basic'      => null,
-        'inline'     => 'form-inline',
-        'horizontal' => 'form-horizontal',
-    ];
-
-    protected $previousSizes   = null;
+    public $type;
 
     protected $requiredClasses = [];
 
-    private   $view;
-
-    public function open(array $options = [], $type = 'horizontal')
+    public function open(array $options = [], $type = null)
     {
-        // Set the form type
-        $this->setType($type);
-
-        // Make sure the form has the proper class
-        $formClass = $this->allowedTypes[$this->type];
-        $options   = $this->verifyHasOption($options, 'class', $formClass);
-
-        return parent::open($options);
-    }
-
-    public function setType($type)
-    {
-        if (! array_key_exists($type, $this->allowedTypes)) {
-            throw new \InvalidArgumentException('Form type [' . $type . '] not allowed.');
+        if (! is_null($type)) {
+            $this->type = $type;
         }
 
-        $this->type = $type;
-
-        return $this;
+        return parent::open($options);
     }
 
     public function setSizes($labelSize, $inputSize = null, $iconSize = 0)
@@ -61,92 +37,22 @@ class FormBuilder extends BaseFormBuilder
         return $this;
     }
 
-    public function groupOpen($labelSize = null, $inputSize = null, $iconSize = null)
-    {
-        if ($labelSize != null) {
-            $this->previousSizes = [$this->labelSize, $this->inputSize, $this->iconSize];
-
-            $this->setSizes($labelSize, $inputSize, $iconSize);
-        }
-
-        $classes = implode(' ', $this->requiredClasses);
-
-        return <<<HTML
-<div class="form-group {$classes}">
-HTML;
-    }
-
-    public function groupClose()
-    {
-        if ($this->previousSizes != null) {
-            call_user_func_array([$this, 'setSizes'], $this->previousSizes);
-
-            $this->previousSizes = null;
-        }
-
-        $inputClose = $this->getInputWrapperClose();
-
-        return <<<HTML
-    $inputClose
-</div>
-HTML;
-    }
-
-    public function offsetGroupOpen($labelSize = null, $inputSize = null, $iconSize = null)
-    {
-        if ($labelSize != null) {
-            $this->previousSizes = [$this->labelSize, $this->inputSize, $this->iconSize];
-
-            $this->setSizes($labelSize, $inputSize, $iconSize);
-        }
-
-        $classes = implode(' ', $this->requiredClasses);
-
-        if ($this->type == 'horizontal') {
-            return <<<HTML
-    <div class="form-group {$classes}">
-        <div class="col-md-offset-{$this->labelSize} col-md-{$this->inputSize}">
-HTML;
-        }
-
-        return <<<HTML
-    <div class="form-group {$classes}">
-HTML;
-    }
-
-    public function offsetGroupClose()
-    {
-        if ($this->previousSizes != null) {
-            call_user_func_array([$this, 'setSizes'], $this->previousSizes);
-
-            $this->previousSizes = null;
-        }
-
-        $inputClose = $this->getInputWrapperClose();
-
-        if ($this->type == 'horizontal') {
-            return <<<HTML
-        $inputClose
-    </div>
-HTML;
-        }
-
-        return <<<HTML
-    $inputClose
-</div>
-HTML;
-    }
-
     public function label($name, $value = null, $options = [])
     {
-        switch ($this->type) {
-            case 'inline':
-                $options = $this->verifyHasOption($options, 'class', 'sr-only');
-                break;
-            case 'horizontal':
-                $options = $this->verifyHasOption($options, 'class', 'col-md-' . $this->labelSize);
-                $options = $this->verifyHasOption($options, 'class', 'control-label');
-                break;
+
+        if ($this->type == 'inline') {
+            $options = $this->verifyHasOption($options, 'class', 'right');
+            $options = $this->verifyHasOption($options, 'class', 'inline');
+
+            $label = parent::label($name, $value, $options);
+            $size  = $this->labelSize;
+
+            return <<<HTML
+    <div class="row">
+      <div class="small-$size columns">
+        $label
+      </div>
+HTML;
         }
 
         return parent::label($name, $value, $options);
@@ -158,28 +64,6 @@ HTML;
         $options = $this->verifyAttributes('text', $options);
 
         return parent::hidden($name, $value, $options);
-    }
-
-    public function help($text, $options = [])
-    {
-        $options = $this->verifyAttributes('help', $options);
-
-        return $this->html->span($text, $options);
-    }
-
-    public function icon($class, $options = [])
-    {
-        $options = $this->verifyHasOption($options, 'class', 'form-control-feedback');
-        $options = $this->verifyHasOption($options, 'class', $class);
-
-        if (strpos($class, 'fa fa') !== false) {
-            // For font-awesome, increase the offset
-            $options = $this->verifyHasOption($options, 'style', 'top: 30px;');
-        }
-
-        $options['aria-hidden'] = 'true';
-
-        return $this->html->span(null, $options);
     }
 
     public function date($name, $value = null, $options = [], $label = null)
@@ -256,46 +140,13 @@ HTML;
         return $this->createOutput($name, $label, $input);
     }
 
-    public function select2($name, $optionsArray, $selected, $options = [], $label = null, $placeholder = null)
-    {
-        // Set up the attributes
-        $options  = $this->verifyAttributes('select2', $options);
-        $multiple = in_array('multiple', $options);
-
-        // Create the default input
-        $input = parent::select($name, $optionsArray, $selected, $options);
-
-        // Add the jquery
-        $this->setSelect2Requirements($options['id'], $placeholder, $multiple);
-
-        return $this->createOutput($name, $label, $input);
-    }
-
-    public function color($name, $value, $options = [], $label = null)
-    {
-        // Set up the attributes
-        $options = $this->verifyAttributes('color', $options);
-
-        $this->setColorRequirements();
-
-        // Create the default input
-        $input = parent::text($name, $value, $options);
-        $input = <<<HTML
-        <div class="input-group">
-            <span class="input-group-addon" id="colorPreview{$name}" style="background-color: {$value};">&nbsp;</span>
-            $input
-        </div>
-HTML;
-
-        return $this->createOutput($name, $label, $input);
-    }
-
     protected function createOutput($name, $label, $input)
     {
         // Set up the label
         $label = $label != null ? $this->label($name, $label) : null;
 
-        $inputOpen = $this->getInputWrapperOpen();
+        $inputOpen  = $this->getInputWrapperOpen();
+        $inputClose = $this->getInputWrapperClose();
 
         $this->requiredClasses = [];
 
@@ -303,6 +154,7 @@ HTML;
 			$label
 			$inputOpen
 			$input
+			$inputClose
 HTML;
     }
 
@@ -342,61 +194,8 @@ HTML;
 HTML;
     }
 
-    protected function setColorRequirements()
-    {
-        static $exists = false;
-        if (! $exists) {
-            $this->addToSection('onReadyJs', '
-$(\'.colorpicker\').colorpicker().on(\'changeColor\', function(ev){
-	$(\'#colorPreview\'+ $(this).attr(\'name\')).css(\'background-color\', ev.color.toHex());
-});
-			'
-            );
-            $exists = true;
-        }
-    }
-
-    protected function setSelect2Requirements($id, $placeholder, $multiple)
-    {
-        if ($multiple) {
-            $script = <<<HTML
-@parent
-$('#$id').select2({placeholder: '$placeholder',allowClear: true});
-HTML;
-        } else {
-            $script = <<<HTML
-@parent
-$('#$id')
-			 .prepend('<option/>')
-			 .val(function(){return $('[selected]',this).val() ;})
-			 .select2({
-				placeholder: '$placeholder',
-				allowClear: true
-			 });
-HTML;
-        }
-
-        return $this->addToSection('onReadyJs', $script);
-    }
-
     public function verifyAttributes($input, $options)
     {
-        // Input specific attributes
-        if ($input == 'color') {
-            $options = $this->verifyHasOption($options, 'class', 'colorpicker');
-        }
-        if ($input == 'select2') {
-            if (! isset($options['id'])) {
-                $options['id'] = \Str::random(10);
-            }
-        }
-        if ($input == 'help') {
-            return $this->verifyHasOption($options, 'class', 'help-block');
-        }
-
-        // All inputs
-        $options = $this->verifyHasOption($options, 'class', 'form-control');
-
         if (! empty($this->requiredClasses)) {
             foreach ($this->requiredClasses as $class) {
                 $options = $this->verifyHasOption($options, 'class', $class);
@@ -409,8 +208,8 @@ HTML;
     protected function getInputWrapperOpen()
     {
         switch ($this->type) {
-            case 'horizontal':
-                return '<div class="col-md-' . $this->inputSize . '">';
+            case 'inline':
+                return '<div class="small-' . $this->inputSize . ' columns">';
                 break;
         }
 
@@ -420,8 +219,8 @@ HTML;
     protected function getIconWrapperOpen()
     {
         switch ($this->type) {
-            case 'horizontal':
-                return '<div class="col-md-' . $this->iconSize . '">';
+            case 'inline':
+                return '<div class="small-' . $this->iconSize . '" columns>';
                 break;
         }
 
@@ -431,8 +230,8 @@ HTML;
     protected function getInputWrapperClose()
     {
         switch ($this->type) {
-            case 'horizontal':
-                return '</div>';
+            case 'inline':
+                return '</div></div>';
                 break;
         }
 

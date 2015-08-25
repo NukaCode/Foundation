@@ -16,7 +16,7 @@
             @endif
         </div>
 
-        {{--@include('layouts.partials.modals')--}}
+        @include('layouts.partials.modals')
 
         @include('layouts.partials.javascript')
 
